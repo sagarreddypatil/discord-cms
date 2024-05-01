@@ -8,6 +8,9 @@ defmodule DiscordCms.Router do
   alias Nostrum.Api
   alias DiscordCms.MessageCache
 
+  plug Plug.Static, at: "/static", from: "priv/static"
+
+
   plug(:match)
   plug(:dispatch)
 
@@ -56,7 +59,7 @@ defmodule DiscordCms.Router do
       html = Earmark.as_html!(content, escape: false)
 
       conn
-      |> render("markdown.html.eex", content: html, title: title)
+      |> render("markdown.heex", content: html, title: title)
     end
   end
 

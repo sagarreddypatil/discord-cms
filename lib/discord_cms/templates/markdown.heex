@@ -2,10 +2,10 @@
 <html>
     <head>
         <meta charset="utf-8"/>
-        <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="stylesheet" href="/static/assets/app.css" />
         <title><%= title %></title>
     </head>
-    <body>
-        <div id="content" class="prose"><%= content %></div>
+    <body class="bg-white dark:bg-black">
+        <div id="content" class="prose md:prose-lg lg:prose-xl max-w-none prose-neutral dark:prose-invert"><%= content %></div>
     </body>
 </html>

@@ -26,3 +26,4 @@ discord_cms-*.tar
 /tmp/
 
 attachments/
+priv/
