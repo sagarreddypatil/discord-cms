@@ -27,3 +27,4 @@ discord_cms-*.tar
 
 attachments/
 priv/
+config/secret.exs

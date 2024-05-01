@@ -1,27 +1,22 @@
 defmodule DiscordCms.Router do
   @template_dir "lib/discord_cms/templates"
 
-  # import Plug.Conn
-  import Logger
   use Plug.Router
-  alias Nostrum.Cache
-  alias Nostrum.Api
   alias DiscordCms.MessageCache
 
-  plug Plug.Static, at: "/static", from: "priv/static"
-
+  plug(Plug.Static, at: "/static", from: "priv/static")
 
   plug(:match)
   plug(:dispatch)
 
-  defp first_level_1_header([{"h1", _, [content], %{}} | _] = ast) do
+  defp first_level_1_header([{"h1", _, [content], %{}} | _] = _) do
     content
   end
 
   defp first_level_1_header([_ | rest]), do: first_level_1_header(rest)
   defp first_level_1_header([]), do: ""
 
-  defp render(%{status: status} = conn, template, assigns \\ []) do
+  defp render(%{status: status} = conn, template, assigns) do
     body =
       @template_dir
       |> Path.join(template)
@@ -43,23 +38,29 @@ defmodule DiscordCms.Router do
   end
 
   get "/:category/:channel.md" do
-    {status, content} = MessageCache.get(channel)
+    {status, content} = MessageCache.get(channel, category)
 
-    if status == :error do
-      conn
-      |> put_resp_content_type("text/plain")
-      |> send_resp(404, "Not found")
-    else
-      ast = case Earmark.Parser.as_ast(content) do
-            {:ok, ast, _} -> ast
-            {:error, _, _errs} -> conn |> send_resp(500, "Internal server error"); nil
-      end
+    cond do
+      status == :error ->
+        conn
+        |> put_resp_content_type("text/plain")
+        |> send_resp(404, "Not found")
+      true ->
+        ast =
+          case Earmark.Parser.as_ast(content) do
+            {:ok, ast, _} ->
+              ast
 
-      title = first_level_1_header(ast)
-      html = Earmark.as_html!(content, escape: false)
+            {:error, _, _errs} ->
+              conn |> send_resp(500, "Internal server error")
+              nil
+          end
 
-      conn
-      |> render("markdown.heex", content: html, title: title)
+        title = first_level_1_header(ast)
+        html = Earmark.as_html!(content, escape: false)
+
+        conn
+        |> render(category <> "/page.heex", content: html, title: title)
     end
   end
 

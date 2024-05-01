@@ -11,6 +11,19 @@ defmodule DiscordCms.MessageCache do
     ])
   end
 
+  def process_discord_link(link) do
+    {:ok, _gid, cid, _mid} =
+      Regex.named_captures(
+        ~r{https://discord.com/channels/(?<guild_id>\d+)/(?<channel_id>\d+)/(?<message_id>\d+)},
+        link
+      )
+
+    channel_id = String.to_integer(cid)
+    channel_name = Nostrum.Cache.GuildCache.get!(@my_guild_id).channels[channel_id].name
+
+    {:ok, channel_name}
+  end
+
   def get_cid(channel_name) do
     guild = Nostrum.Cache.GuildCache.get!(@my_guild_id)
 
@@ -19,10 +32,13 @@ defmodule DiscordCms.MessageCache do
       |> Enum.find(fn {_, c} -> c.name == channel_name end)
 
     if dchannel == nil do
-      {:error, :not_found}
+      {:error, :not_found, :not_found}
     else
-      {cid, _} = dchannel
-      {:ok, cid}
+      {cid, channel} = dchannel
+      parent_id = channel.parent_id
+      {_, parent} = guild.channels |> Enum.find(fn {_, c} -> c.id == parent_id end)
+      parent_name = parent.name
+      {:ok, cid, parent_name}
     end
   end
 
@@ -68,7 +84,13 @@ defmodule DiscordCms.MessageCache do
       |> Enum.join("")
 
     content = msg.content |> String.trim()
-    content = if content == "" do "" else "#{content}\n\n" end
+
+    content =
+      if content == "" do
+        ""
+      else
+        "#{content}\n\n"
+      end
 
     if attachments != [] do
       "#{attachments}\n\n#{content}"
@@ -84,29 +106,42 @@ defmodule DiscordCms.MessageCache do
     |> String.trim()
   end
 
-  def get(channel_name) do
+  def get(channel_name, category) do
     case :ets.lookup(:channel_cache, channel_name) do
       [] ->
-        {status, cid} = get_cid(channel_name)
+        {status, cid, parent_name} = get_cid(channel_name)
 
         if status == :error do
           :ets.insert(:channel_cache, {channel_name, {:error, :not_found}})
           {:error, :not_found}
         else
-          Logger.info("#{channel_name} not found in cache, fetching messages.")
-          t = Task.async(fn -> Nostrum.Api.get_channel_messages!(cid, :infinity, {}) end)
+          cond do
+            parent_name != category ->
+              # :ets.insert(:channel_cache, {channel_name, {:error, :not_found}})
+              {:error, :not_found}
+            category == "private" ->
+              :ets.insert(:channel_cache, {channel_name, {:error, :not_found}})
+              {:error, :not_found}
+            true ->
+              Logger.info("#{channel_name} not found in cache, fetching messages.")
+              t = Task.async(fn -> Nostrum.Api.get_channel_messages!(cid, :infinity, {}) end)
 
-          messages =
-            Task.await(t)
-            |> Enum.reverse()
-            |> to_markdown()
+              messages =
+                Task.await(t)
+                |> Enum.reverse()
+                |> to_markdown()
 
-          :ets.insert(:channel_cache, {channel_name, {:ok, messages}})
-          {:ok, messages}
+              :ets.insert(:channel_cache, {channel_name, {:ok, parent_name, messages}})
+              {:ok, messages}
+            end
         end
 
-      [{_, content}] ->
-        content
+      [{_, {status, parent_name, content}}] ->
+        if parent_name == category do
+          {status, content}
+        else
+          {:error, :not_found}
+        end
     end
   end
 end

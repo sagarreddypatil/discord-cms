@@ -1,7 +1,8 @@
 import Config
 
+import Logger
+
 config :nostrum,
-  token: "DISCORD_BOT_TOKEN",
   gateway_intents: [
     :guilds,
     :guild_messages,
@@ -16,3 +17,5 @@ config :tailwind, version: "3.2.4", default: [
   ),
   cd: Path.expand("../assets", __DIR__)
 ]
+
+if File.exists?("config/secret.exs"), do: import_config("secret.exs")
