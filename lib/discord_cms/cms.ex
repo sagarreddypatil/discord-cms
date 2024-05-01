@@ -71,7 +71,7 @@ defmodule DiscordCms.MessageCache do
     content = if content == "" do "" else "#{content}\n\n" end
 
     if attachments != [] do
-      "#{attachments}\n#{content}"
+      "#{attachments}\n\n#{content}"
     else
       "#{content}"
     end
