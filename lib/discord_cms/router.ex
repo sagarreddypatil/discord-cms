@@ -20,10 +20,16 @@ defmodule DiscordCms.Router do
     body =
       @template_dir
       |> Path.join(template)
-      |> String.replace_suffix(".html", ".heex")
       |> EEx.eval_file(assigns)
 
-    send_resp(conn, status || 200, body)
+    title = assigns[:title] || "Sagar Patil"
+
+    layout =
+      @template_dir
+      |> Path.join("layout.html.eex")
+      |> EEx.eval_file(title: title, inner: body)
+
+    send_resp(conn, status || 200, layout)
   end
 
   get "/attachments/:id/:filename" do
@@ -60,7 +66,7 @@ defmodule DiscordCms.Router do
         html = Earmark.as_html!(content, escape: false)
 
         conn
-        |> render(category <> "/page.heex", content: html, title: title)
+        |> render(category <> "/page.html.eex", title: title, content: html)
     end
   end
 

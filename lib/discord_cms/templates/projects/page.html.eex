@@ -1,0 +1,9 @@
+<fieldset>
+    <legend>
+        <span id="page-loc" class="text-lg mx-2 font-mono italic"></span>
+    </legend>
+    <div id="content" class="prose md:prose-lg lg:prose-xl max-w-none prose-neutral dark:prose-invert"><%= content %></div>
+</fieldset>
+<script>
+    document.getElementById('page-loc').innerHTML = `cat ~${window.location.pathname}`;
+</script>

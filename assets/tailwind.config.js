@@ -4,14 +4,19 @@
 let plugin = require('tailwindcss/plugin')
 
 module.exports = {
+  darkMode: 'class',
   content: [
-    './js/**/*.js',
-    '../lib/**/*.ex',
+    '../lib/**/*.html.eex',
     '../lib/**/*.heex',
   ],
   theme: {
     extend: {},
   },
+  safelist: [
+    {
+      pattern: /.*/,
+    }
+  ],
   plugins: [
     require('@tailwindcss/typography'),
   ]
